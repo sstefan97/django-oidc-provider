@@ -22,6 +22,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'app',
     'oidc_provider',
+    'corsheaders'
 ]
 
 MIDDLEWARE_CLASSES = [
@@ -32,8 +33,12 @@ MIDDLEWARE_CLASSES = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'oidc_provider.middleware.SessionManagementMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
 ]
 MIDDLEWARE = MIDDLEWARE_CLASSES
+
+CORS_ALLOW_ALL_ORIGINS = True # If this is used then `CORS_ALLOWED_ORIGINS` will not have any effect
+CORS_ALLOW_CREDENTIALS = True
 
 TEMPLATES = [
     {
