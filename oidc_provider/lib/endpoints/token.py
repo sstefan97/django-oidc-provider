@@ -4,6 +4,7 @@ import logging
 from base64 import urlsafe_b64encode
 
 from django.contrib.auth import authenticate
+from django.db import DatabaseError
 from django.http import JsonResponse
 
 from oidc_provider import settings
@@ -70,7 +71,11 @@ class TokenEndpoint(object):
                 raise TokenError('invalid_client')
 
             try:
-                self.code = Code.objects.get(code=self.params['code'])
+                self.code = Code.objects.select_for_update(nowait=True).get(
+                    code=self.params['code'])
+            except DatabaseError:
+                logger.debug('[Token] Code cannot be reused: %s', self.params['code'])
+                raise TokenError('invalid_grant')
             except Code.DoesNotExist:
                 logger.debug('[Token] Code does not exist: %s', self.params['code'])
                 raise TokenError('invalid_grant')
@@ -166,13 +171,23 @@ class TokenEndpoint(object):
         elif self.params['grant_type'] == 'client_credentials':
             return self.create_client_credentials_response_dic()
 
+    def create_token(self, user, client, scope):
+        token = create_token(
+            user=user,
+            client=client,
+            scope=scope,
+        )
+
+        return token
+
     def create_code_response_dic(self):
         # See https://tools.ietf.org/html/rfc6749#section-4.1
 
-        token = create_token(
+        token = self.create_token(
             user=self.code.user,
             client=self.code.client,
-            scope=self.code.scope)
+            scope=self.code.scope,
+        )
 
         if self.code.is_authentication:
             id_token_dic = create_id_token(
@@ -213,10 +228,11 @@ class TokenEndpoint(object):
         if unauthorized_scopes:
             raise TokenError('invalid_scope')
 
-        token = create_token(
+        token = self.create_token(
             user=self.token.user,
             client=self.token.client,
-            scope=scope)
+            scope=scope,
+        )
 
         # If the Token has an id_token it's an Authentication request.
         if self.token.id_token:
@@ -252,10 +268,11 @@ class TokenEndpoint(object):
     def create_access_token_response_dic(self):
         # See https://tools.ietf.org/html/rfc6749#section-4.3
         token_scopes = self.validate_requested_scopes()
-        token = create_token(
+        token = self.create_token(
             self.user,
             self.client,
-            token_scopes)
+            token_scopes,
+        )
 
         id_token_dic = create_id_token(
             token=token,
@@ -283,11 +300,11 @@ class TokenEndpoint(object):
         # See https://tools.ietf.org/html/rfc6749#section-4.4.3
         token_scopes = self.validate_requested_scopes()
 
-        token = create_token(
+        token = self.create_token(
             user=None,
             client=self.client,
-            scope=token_scopes)
-
+            scope=token_scopes,
+        )
         token.save()
 
         return {

@@ -7,10 +7,10 @@ We love contributions, so please feel free to fix bugs, improve things, provide 
 
 * Create an issue and explain your feature/bugfix.
 * Wait collaborators comments.
-* Fork the project and create new branch from `develop`.
+* Fork the project and create new branch from ``develop``.
 * Make your feature addition or bug fix.
 * Add tests and documentation if needed.
-* Create pull request for the issue to the `develop` branch.
+* Create pull request for the issue to the ``develop`` branch.
 * Wait collaborators reviews.
 
 Running Tests
@@ -32,7 +32,7 @@ We use `Github Actions <https://github.com/juanifioren/django-oidc-provider/acti
 Improve Documentation
 =====================
 
-We use `Sphinx <http://www.sphinx-doc.org/>`_ for generate this documentation. If you want to add or modify something just:
+We use `Sphinx <http://www.sphinx-doc.org/>`_ to generate this documentation. If you want to add or modify something just:
 
 * Install Sphinx (``pip install sphinx``) and the auto-build tool (``pip install sphinx-autobuild``).
 * Move inside the docs folder. ``cd docs/``

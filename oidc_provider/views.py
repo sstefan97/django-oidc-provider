@@ -18,6 +18,7 @@ try:
     from django.urls import reverse
 except ImportError:
     from django.core.urlresolvers import reverse
+from django.db import transaction
 from django.contrib.auth import logout as django_user_logout
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render
@@ -103,20 +104,15 @@ class AuthorizeView(View):
                     raise AuthorizeError(
                         authorize.params['redirect_uri'], 'consent_required', authorize.grant_type)
 
-                implicit_flow_resp_types = {'id_token', 'id_token token'}
-                allow_skipping_consent = (
-                    authorize.client.client_type != 'public' or
-                    authorize.params['response_type'] in implicit_flow_resp_types)
-
                 if not authorize.client.require_consent and (
-                        allow_skipping_consent and
+                        authorize.is_client_allowed_to_skip_consent() and
                         'consent' not in authorize.params['prompt']):
                     return redirect(authorize.create_response_uri())
 
                 if authorize.client.reuse_consent:
                     # Check if user previously give consent.
                     if authorize.client_has_user_consent() and (
-                            allow_skipping_consent and
+                            authorize.is_client_allowed_to_skip_consent() and
                             'consent' not in authorize.params['prompt']):
                         return redirect(authorize.create_response_uri())
 
@@ -209,9 +205,9 @@ class TokenView(View):
         token = self.token_endpoint_class(request)
 
         try:
-            token.validate_params()
-
-            dic = token.create_response_dic()
+            with transaction.atomic():
+                token.validate_params()
+                dic = token.create_response_dic()
 
             return self.token_endpoint_class.response(dic)
 
